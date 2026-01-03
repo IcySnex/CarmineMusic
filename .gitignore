@@ -1,10 +1,12 @@
 .vs/
+.idea/
 packages/
 
 Development/
 
 *.suo
 *.user
+*.DS_Store
 _ReSharper.*
 
 
