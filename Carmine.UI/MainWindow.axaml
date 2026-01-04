@@ -1,14 +1,20 @@
-<ui:Window xmlns="https://github.com/avaloniaui"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:ui="using:ShadUI"
-        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-        x:Class="Carmine.UI.MainWindow"
-        Title="Carmine">
-    <StackPanel>
-        <TextBlock Text="Welcome to Carmine!" HorizontalAlignment="Center" Margin="0,20,0,20" FontSize="24"/>
-        <Button Content="Click Me" Width="100" Height="30" HorizontalAlignment="Center"/>
-        <ToggleSwitch></ToggleSwitch>
-    </StackPanel>
-</ui:Window>
+<Window
+	Title="Carmine"
+	d:DesignHeight="450"
+	d:DesignWidth="800"
+	mc:Ignorable="d"
+	x:Class="Carmine.UI.MainWindow"
+	xmlns="https://github.com/avaloniaui"
+	xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+	xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+	xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+	<StackPanel>
+		<TextBlock
+			FontSize="24"
+			Margin="0,20,0,20"
+			Text="Welcome to Carmine!" />
+		<Button Content="Click Me" Width="100" />
+		<ToggleSwitch />
+	</StackPanel>
+</Window>
