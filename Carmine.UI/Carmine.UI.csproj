@@ -17,9 +17,11 @@
 			<IncludeAssets Condition="'$(Configuration)' != 'Debug'">None</IncludeAssets>
 			<PrivateAssets Condition="'$(Configuration)' != 'Debug'">All</PrivateAssets>
 		</PackageReference>
-		
-		<PackageReference Include="HotAvalonia" Version="3.0.2" PrivateAssets="All" Publish="True"/>
 
-		<PackageReference Include="ShadUI" Version="0.1.5"/>
+		<PackageReference Include="HotAvalonia" Version="3.0.2" PrivateAssets="All" Publish="True"/>
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\shad-ui\src\ShadUI\ShadUI.csproj"/>
 	</ItemGroup>
 </Project>

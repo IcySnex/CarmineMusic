@@ -1,0 +1,3 @@
+[submodule "shad-ui"]
+	path = shad-ui
+	url = https://github.com/IcySnex/shad-ui.git
