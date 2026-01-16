@@ -1,21 +1,36 @@
 <ui:Window
-	Title="Carmine"
-	d:DesignHeight="450"
-	d:DesignWidth="800"
-	mc:Ignorable="d"
 	x:Class="Carmine.UI.MainWindow"
 	xmlns="https://github.com/avaloniaui"
+	xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
 	xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
 	xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
 	xmlns:ui="clr-namespace:ShadUI;assembly=ShadUI"
-	xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+	Title="Carmine"
+	d:DesignHeight="450"
+	d:DesignWidth="800"
+	mc:Ignorable="d">
 
-	<StackPanel>
-		<TextBlock
-			FontSize="24"
-			Margin="0,20,0,20"
-			Text="Welcome to Carmine!" />
-		<Button Content="Click Me" Width="100" />
-		<ToggleSwitch />
-	</StackPanel>
+	<Grid ColumnDefinitions="Auto *">
+		<ui:Sidebar Expanded="True">
+			<StackPanel Spacing="4">
+				<ui:SidebarItem Content="Home">
+					<ui:SidebarItem.Icon>
+						<Viewbox>
+							<TextBlock FontFamily="LucideIcon" Text="&#xe0f9;" />
+						</Viewbox>
+					</ui:SidebarItem.Icon>
+				</ui:SidebarItem>
+
+				<ui:SidebarItem Content="Home">
+					<ui:SidebarItem.Icon>
+						<Viewbox>
+							<TextBlock FontFamily="LucideIcon" Text="&#xe0f9;" />
+						</Viewbox>
+					</ui:SidebarItem.Icon>
+				</ui:SidebarItem>
+			</StackPanel>
+		</ui:Sidebar>
+
+		<Grid />
+	</Grid>
 </ui:Window>

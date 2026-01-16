@@ -1,9 +1,15 @@
-<Application xmlns="https://github.com/avaloniaui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             x:Class="Carmine.UI.App"
-             xmlns:ui="clr-namespace:ShadUI;assembly=ShadUI"
-             RequestedThemeVariant="Default">
-    <Application.Styles>
-        <ui:ShadTheme />
-    </Application.Styles>
+<Application
+	x:Class="Carmine.UI.App"
+	xmlns="https://github.com/avaloniaui"
+	xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+	xmlns:ui="clr-namespace:ShadUI;assembly=ShadUI"
+	RequestedThemeVariant="Default">
+
+	<Application.Resources>
+		<FontFamily x:Key="LucideIcon">avares://shadui-app/Assets/Fonts#lucide</FontFamily>
+	</Application.Resources>
+
+	<Application.Styles>
+		<ui:ShadTheme />
+	</Application.Styles>
 </Application>
