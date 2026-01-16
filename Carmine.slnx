@@ -1,4 +1,4 @@
 <Solution>
+  <Project Path="Carmine.Core/Carmine.Core.csproj" />
   <Project Path="Carmine.UI/Carmine.UI.csproj" />
-  <Project Path="shad-ui/src/ShadUI/ShadUI.csproj" />
 </Solution>
