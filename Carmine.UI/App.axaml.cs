@@ -12,6 +12,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Serilog;
 using System;
+using System.IO;
 
 namespace Carmine.UI;
 
@@ -23,7 +24,7 @@ public class App : Application
 	public override void Initialize()
 	{
 		AvaloniaXamlLoader.Load(this);
-	}
+    }
 
 	public override void OnFrameworkInitializationCompleted()
 	{
@@ -35,11 +36,20 @@ public class App : Application
 		IHost host = Host.CreateDefaultBuilder()
 			.UseSerilog((context, configuration) =>
 			{
-				configuration.Enrich.With<SourceContextEnricher>();
+				const string Template = "[{Timestamp:HH:mm:ss} {Level:u3} {Class}] {Message:l}{NewLine:l}{Exception:l}";
 
-                configuration.WriteTo.Console();
-                configuration.WriteTo.Debug();
-				configuration.WriteTo.File("Logs/Log-.txt", rollingInterval: RollingInterval.Day, retainedFileCountLimit: 10);
+
+                configuration.Enrich.With<SourceContextEnricher>();
+
+                configuration.WriteTo.Console(
+					outputTemplate: Template);
+                configuration.WriteTo.Debug(
+					outputTemplate: Template);
+				configuration.WriteTo.File(
+					path: Path.Combine(PathResolver.LogsDirectory, "Log-.txt"),
+					rollingInterval: RollingInterval.Day,
+					retainedFileCountLimit: 10,
+					outputTemplate: Template);
 			})
 			.ConfigureServices((context, services) =>
             {
