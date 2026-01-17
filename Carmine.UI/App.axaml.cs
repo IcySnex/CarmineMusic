@@ -2,7 +2,6 @@ using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Data.Core.Plugins;
 using Avalonia.Markup.Xaml;
-using Carmine.Core.Navigation;
 using Carmine.Core.Services;
 using Carmine.Core.Utilities;
 using Carmine.UI.ViewModels;
@@ -11,6 +10,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Serilog;
+using ShadUI;
 using System;
 using System.IO;
 
@@ -54,15 +54,11 @@ public class App : Application
 			.ConfigureServices((context, services) =>
             {
                 // Services
-                services.AddSingleton<LifetimeHandler>(provider => new(
-					logger: provider.GetRequiredService<ILogger<LifetimeHandler>>(),
-					lifetime: desktop,
-					mainWindow: new MainWindow() { DataContext = provider.GetRequiredService<MainWindowViewModel>() },
-                    navigator: provider.GetRequiredService<Navigator>()));
+                services.AddSingleton<LifetimeHandler>(provider => new(provider, desktop, new MainWindow() { DataContext = provider.GetRequiredService<MainWindowViewModel>() }));
 
-				services.AddSingleton<Navigator>(provider => new(
-					provider: provider,
-					logger: provider.GetRequiredService<ILogger<Navigator>>()));
+				services.AddSingleton<Navigator>();
+
+                services.AddSingleton<ToastManager>();
 
                 // ViewModels
                 services.AddSingleton<MainWindowViewModel>();

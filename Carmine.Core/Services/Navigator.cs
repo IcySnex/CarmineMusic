@@ -1,15 +1,17 @@
 ﻿using Avalonia.Controls;
+using Carmine.Core.Navigation;
 using Carmine.Core.Utilities;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using ShadUI;
 using System.Reflection;
 
-namespace Carmine.Core.Navigation;
+namespace Carmine.Core.Services;
 
 public partial class Navigator(
-    IServiceProvider provider,
-    ILogger<Navigator> logger) : ObservableObject
+    ILogger<Navigator> logger,
+    ToastManager toastManager) : ObservableObject
 {
     class Page(
         Type viewModelType,
@@ -33,11 +35,7 @@ public partial class Navigator(
     }
 
 
-    readonly IServiceProvider provider = provider;
-    readonly ILogger<Navigator> logger = logger;
-
     readonly Dictionary<string, Page> routes = [];
-
 
     public string? CurrentRoute { get; private set; }
     public object? CurrentViewModel { get; private set; }
@@ -175,13 +173,13 @@ public partial class Navigator(
     }
 
 
-    public void Navigate(
+    public bool Navigate(
         string uri)
     {
         if (string.IsNullOrWhiteSpace(uri))
         {
             logger.LogWarning("Tried to navigate to empty uri.");
-            return;
+            return false;
         }
 
         logger.LogInformation("Navigation '{uri}' requested...", uri);
@@ -190,14 +188,20 @@ public partial class Navigator(
         if (route == CurrentRoute)
         {
             logger.LogWarning("Tried to navigate to current route. Skipping...");
-            return;
+            return false;
         }
 
         if (!routes.TryGetValue(route, out Page? page))
-            logger.LogErrorAndThrow(new InvalidOperationException($"No page found for route '{route}'."), "Failed to navigate.");
+        {
+            toastManager.CreateToast("Something went wrong!")
+                .WithContent($"It looks like the page '{route}' doesn't exist.")
+                .DismissOnClick()
+                .ShowWarning();
+            return false;
+        }
 
         // Get ViewModel and View
-        object viewModel = provider.GetRequiredService(page.ViewModelType);
+        object viewModel = LifetimeHandler.Provider.GetRequiredService(page.ViewModelType);
 
         Control view = GetView(route);
         view.DataContext = viewModel;
@@ -219,5 +223,7 @@ public partial class Navigator(
 
         page.OnNavigatedTo?.Invoke(viewModel, page.OnNavigatedToAcceptsParameters ? [parameters] : null);
         currentOnNavigatedFrom = page.OnNavigatedFrom;
+
+        return true;
     }
 }

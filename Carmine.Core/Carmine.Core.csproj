@@ -8,6 +8,8 @@
 	<ItemGroup>
 		<PackageReference Include="Avalonia" Version="11.3.10" />
 
+		<PackageReference Include="ShadUI" Version="0.1.6" />
+
 		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.2" />
 		<PackageReference Include="Serilog" Version="4.3.0" />
 		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />

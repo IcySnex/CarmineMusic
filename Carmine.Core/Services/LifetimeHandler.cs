@@ -1,6 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
-using Carmine.Core.Navigation;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Text.Json;
@@ -10,21 +10,27 @@ namespace Carmine.Core.Services;
 
 public class LifetimeHandler
 {
-	readonly ILogger<LifetimeHandler> logger;
-	readonly IClassicDesktopStyleApplicationLifetime lifetime;
-	readonly Window mainWindow;
+	public static IServiceProvider Provider { get; private set; } = default!;
+
+
+    readonly IClassicDesktopStyleApplicationLifetime lifetime;
+    readonly Window mainWindow;
+
+    readonly ILogger<LifetimeHandler> logger;
 	readonly Navigator navigator;
 
 	public LifetimeHandler(
-		ILogger<LifetimeHandler> logger,
+        IServiceProvider provider,
 		IClassicDesktopStyleApplicationLifetime lifetime,
-		Window mainWindow,
-		Navigator navigator)
+        Window mainWindow)
 	{
-		this.logger = logger;
+		Provider = provider;
+
 		this.lifetime = lifetime;
-		this.mainWindow = mainWindow;
-		this.navigator = navigator;
+        this.mainWindow = mainWindow;
+
+        logger = provider.GetRequiredService<ILogger<LifetimeHandler>>();
+        navigator = provider.GetRequiredService<Navigator>();
 
 		lifetime.Startup += OnStartup;
 		lifetime.ShutdownRequested += OnShutdownRequested;
@@ -40,8 +46,8 @@ public class LifetimeHandler
 		lifetime.MainWindow = mainWindow;
 
         navigator.Register(mainWindow.GetType().Assembly);
-		navigator.Navigate(args.Args.Length > 0 ? args.Args[0] : "home");
-
+		if (args.Args.Length < 1 || !navigator.Navigate(args.Args[0]))
+			navigator.Navigate("home");
     }
 
 	void OnShutdownRequested(

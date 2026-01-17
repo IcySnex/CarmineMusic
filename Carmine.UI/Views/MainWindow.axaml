@@ -10,7 +10,7 @@
     Title="Carmine"
     Width="1100"
     Height="600"
-    MinWidth="800"
+    MinWidth="00"
     MinHeight="450"
     d:DesignHeight="450"
     d:DesignWidth="800"
@@ -72,5 +72,7 @@
         </ui:Sidebar>
 
         <TransitioningContentControl Grid.Column="1" Content="{Binding Navigator.CurrentView}" />
+
+        <ui:ToastHost Grid.ColumnSpan="2" Manager="{Binding ToastManager}" />
     </Grid>
 </ui:Window>
