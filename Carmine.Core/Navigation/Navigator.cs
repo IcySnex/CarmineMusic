@@ -12,19 +12,22 @@ public partial class Navigator(
     ILogger<Navigator> logger) : ObservableObject
 {
     class Page(
-        Type type,
+        Type viewModelType,
+        Type viewType,
         Control? view,
         bool cacheView,
         MethodInfo? onNavigatedTo,
+        bool onNavigatedToAcceptsParameters,
         MethodInfo? onNavigatedFrom)
     {
-        public Type Type { get; } = type;
+        public Type ViewModelType { get; } = viewModelType;
+        public Type ViewType { get; } = viewType;
 
         public Control? View { get; set; } = view;
-
         public bool CacheView { get; } = cacheView;
 
         public MethodInfo? OnNavigatedTo { get; } = onNavigatedTo;
+        public bool OnNavigatedToAcceptsParameters { get; } = onNavigatedToAcceptsParameters;
 
         public MethodInfo? OnNavigatedFrom { get; } = onNavigatedFrom;
     }
@@ -33,81 +36,173 @@ public partial class Navigator(
     readonly IServiceProvider provider = provider;
     readonly ILogger<Navigator> logger = logger;
 
-    readonly Dictionary<string, Page> routes = new(AppDomain.CurrentDomain.GetAssemblies()
-        .SelectMany(assembly => assembly.GetTypes())
-        .Where(type => !type.IsInterface && !type.IsAbstract && type.GetCustomAttribute<NavigableAttribute>() is not null)
-        .Select(type =>
+    readonly Dictionary<string, Page> routes = [];
+
+
+    public string? CurrentRoute { get; private set; }
+    public object? CurrentViewModel { get; private set; }
+    public Control? CurrentView { get; private set; }
+
+    MethodInfo? currentOnNavigatedFrom = null;
+
+
+    (string Route, Dictionary<string, string> Parameters) ParseUri(
+        string uri)
+    {
+        string route;
+        Dictionary<string, string> parameters = [];
+
+        // Remove protocol if present
+        if (uri.StartsWith("carmine://", StringComparison.OrdinalIgnoreCase))
+            uri = uri["carmine://".Length..];
+
+        // Split route and query
+        string[] parts = uri.Split('?', 2);
+        route = parts[0].TrimEnd('/'); // remove trailing slash
+
+        if (parts.Length > 1)
         {
-            NavigableAttribute attribute = type.GetCustomAttribute<NavigableAttribute>()!;
+            string[]? query = parts[1].Split('&', StringSplitOptions.RemoveEmptyEntries);
+            foreach (string kv in query)
+            {
+                string[] kvParts = kv.Split('=', 2);
 
-            MethodInfo[] methods = type.GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-            MethodInfo? onNavigatedTo = methods.FirstOrDefault(m => m.GetCustomAttribute<OnNavigatedToAttribute>() is not null);
-            MethodInfo? onNavigatedFrom = methods.FirstOrDefault(m => m.GetCustomAttribute<OnNavigatedFromAttribute>() is not null);
+                if (kvParts.Length >= 1 && !string.IsNullOrWhiteSpace(kvParts[0]))
+                {
+                    string key = kvParts[0].Trim();
+                    string value = kvParts.Length > 1 ? kvParts[1].Trim() : string.Empty;
 
-            return new KeyValuePair<string, Page>(attribute.Name, new(type, null, attribute.CacheView, onNavigatedTo, onNavigatedFrom));
-        }));
+                    try
+                    {
+                        key = Uri.UnescapeDataString(key);
+                    }
+                    catch
+                    { }
+
+                    try
+                    {
+                        value = Uri.UnescapeDataString(value);
+                    }
+                    catch
+                    { }
+
+                    parameters[key] = value;
+                }
+            }
+        }
+
+        logger.LogInformation("Parsed URI route '{route}' with {count} parameters", route, parameters.Count);
+        return (route, parameters);
+    }
 
 
     Control GetView(
-        string route,
-        object viewModel)
+        string route)
     {
         if (!routes.TryGetValue(route, out Page? page))
             logger.LogErrorAndThrow(new InvalidOperationException($"No page found for route '{route}'."), "Failed to get view.");
 
         if (!page.CacheView)
-            return CreateView(viewModel);
-        
+            return CreateView(page.ViewType);
+
         if (page.View is not null)
             return page.View;
 
-        page.View = CreateView(viewModel);
+        page.View = CreateView(page.ViewType);
         return page.View;
     }
 
     Control CreateView(
-        object viewModel)
+        Type type)
     {
-        string viewModelName = viewModel.GetType().Name;
-        string viewName = viewModelName.Replace("ViewModel", "View");
+        logger.LogInformation("Creating view '{viewType}'...", type.Name);
 
-        logger.LogInformation("Creating view '{viewType}' for view model '{viewModelType}'...", viewName, viewModelName);
-
-        Type? viewType = Type.GetType($"Carmine.UI.Views.{viewName}, Carmine.UI");
-        if (viewType is null)
-            logger.LogErrorAndThrow(new InvalidOperationException($"View type {viewName} not found"), "Failed to create view.");
-
-        var view = (Control)Activator.CreateInstance(viewType)!;
-        view.DataContext = viewModel;
+        Control view = (Control)Activator.CreateInstance(type)!;
         return view;
     }
 
 
-    public string? CurrentRoute { get; private set; }
+    public void Register(
+        Assembly assembly)
+    {
+        logger.LogInformation("Scanning assembly '{assembly}' for navigable pages...", assembly.FullName);
 
-    public object? CurrentViewModel { get; private set; }
+        foreach (Type type in assembly.GetTypes())
+        {
+            if (type.IsInterface || type.IsAbstract)
+                continue;
 
-    public Control? CurrentView { get; private set; }
+            CustomAttributeData? attribute = type.CustomAttributes.FirstOrDefault(attribute => attribute.AttributeType.IsGenericType && attribute.AttributeType.GetGenericTypeDefinition() == typeof(NavigableAttribute<>));
+            if (attribute is null)
+                continue;
 
+            string name = (string)attribute.ConstructorArguments[0].Value!;
 
-    MethodInfo? currentOnNavigatedFrom = null;
+            Type viewType = attribute.AttributeType.GenericTypeArguments[0];
+            bool cacheView = attribute.ConstructorArguments.Count <= 1 || (bool)attribute.ConstructorArguments[1].Value!;
+            MethodInfo? onNavigatedTo = null;
+            bool onNavigatedToAcceptsParameters = false;
+            MethodInfo? onNavigatedFrom = null;
+
+            foreach (MethodInfo method in type.GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic))
+            {
+                if (onNavigatedTo is null && method.IsDefined(typeof(OnNavigatedToAttribute)))
+                {
+                    ParameterInfo[] parameters = method.GetParameters();
+                    if (parameters.Length == 0)
+                        onNavigatedToAcceptsParameters = false;
+                    else if (parameters.Length == 1 && parameters[0].ParameterType == typeof(Dictionary<string, string>))
+                        onNavigatedToAcceptsParameters = true;
+                    else
+                        logger.LogErrorAndThrow(new InvalidOperationException("Method signature doesn't match expected.", new("Parameters are not allowed.")), "Failed to register assembly.");
+
+                    onNavigatedTo = method;
+                }
+                if (onNavigatedFrom is null && method.IsDefined(typeof(OnNavigatedFromAttribute)))
+                {
+                    if (method.GetParameters().Length != 0)
+                        logger.LogErrorAndThrow(new InvalidOperationException("Method signature doesn't match expected.", new("Parameters are not allowed.")), "Failed to register assembly.");
+
+                    onNavigatedFrom = method;
+                }
+
+                if (onNavigatedTo is not null && onNavigatedFrom is not null)
+                    break;
+            }
+
+            routes[name] = new Page(type, viewType, null, cacheView, onNavigatedTo, onNavigatedToAcceptsParameters, onNavigatedFrom);
+        }
+    }
 
 
     public void Navigate(
-        string route)
+        string uri)
     {
-        if (route == CurrentRoute)
+        if (string.IsNullOrWhiteSpace(uri))
+        {
+            logger.LogWarning("Tried to navigate to empty uri.");
             return;
+        }
 
-        logger.LogInformation("Navigating to route '{route}'...", route);
+        logger.LogInformation("Navigation '{uri}' requested...", uri);
+
+        (string? route, Dictionary<string, string> parameters) = ParseUri(uri);
+        if (route == CurrentRoute)
+        {
+            logger.LogWarning("Tried to navigate to current route. Skipping...");
+            return;
+        }
 
         if (!routes.TryGetValue(route, out Page? page))
             logger.LogErrorAndThrow(new InvalidOperationException($"No page found for route '{route}'."), "Failed to navigate.");
 
-        object viewModel = provider.GetRequiredService(page.Type);
-        Control view = GetView(route, viewModel);
+        // Get ViewModel and View
+        object viewModel = provider.GetRequiredService(page.ViewModelType);
 
+        Control view = GetView(route);
+        view.DataContext = viewModel;
 
+        // Navigate
         currentOnNavigatedFrom?.Invoke(CurrentViewModel!, null);
 
         OnPropertyChanging(nameof(CurrentRoute));
@@ -122,7 +217,7 @@ public partial class Navigator(
         CurrentView = view;
         OnPropertyChanged(nameof(CurrentView));
 
-        page.OnNavigatedTo?.Invoke(viewModel, null);
+        page.OnNavigatedTo?.Invoke(viewModel, page.OnNavigatedToAcceptsParameters ? [parameters] : null);
         currentOnNavigatedFrom = page.OnNavigatedFrom;
     }
 }

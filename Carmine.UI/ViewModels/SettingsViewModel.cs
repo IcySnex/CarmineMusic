@@ -1,11 +1,14 @@
 ﻿using Carmine.Core.Navigation;
+using Carmine.UI.Views;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.Extensions.Logging;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Carmine.UI.ViewModels;
 
-[Navigable("settings")]
+[Navigable<SettingsView>("settings")]
 public partial class SettingsViewModel : ObservableObject
 {
     [ObservableProperty]
@@ -18,16 +21,18 @@ public partial class SettingsViewModel : ObservableObject
     }
 
 
-    [OnNavigatedFrom]
-    public void OnNavigatedFrom()
+    [OnNavigatedTo]
+    public void OnNavigatedToAsync(
+        Dictionary<string, string> parameters)
     {
-        Text = "See you later!";
+        string input = parameters.GetValueOrDefault("input") ?? "Hallo";
+        Text = input;
     }
 
-    [OnNavigatedTo]
-    public async Task OnNavigatedToAsync()
+    [OnNavigatedFrom]
+    public async Task OnNavigatedFromAsync()
     {
-        await Task.Delay(1000);
-        Text = "Hallo!";
+        await Task.Delay(500);
+        Text = "See you later!";
     }
 }

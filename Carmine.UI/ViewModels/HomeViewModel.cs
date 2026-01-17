@@ -1,10 +1,11 @@
 ﻿using Carmine.Core.Navigation;
+using Carmine.UI.Views;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
 namespace Carmine.UI.ViewModels;
 
-[Navigable("home")]
+[Navigable<HomeView>("home")]
 public partial class HomeViewModel : ObservableObject
 {
     [ObservableProperty]

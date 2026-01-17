@@ -1,9 +1,11 @@
-﻿namespace Carmine.Core.Navigation;
+﻿using Avalonia.Controls;
+
+namespace Carmine.Core.Navigation;
 
 [AttributeUsage(AttributeTargets.Class)]
-public class NavigableAttribute(
+public class NavigableAttribute<TView>(
     string name,
-    bool cacheView = true) : Attribute
+    bool cacheView = true) : Attribute where TView : Control
 {
     public string Name { get; } = name;
 

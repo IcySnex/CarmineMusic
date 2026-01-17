@@ -2,6 +2,9 @@ using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Carmine.Core.Navigation;
 using Microsoft.Extensions.Logging;
+using System;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace Carmine.Core.Services;
 
@@ -36,7 +39,8 @@ public class LifetimeHandler
 
 		lifetime.MainWindow = mainWindow;
 
-		navigator.Navigate("home");
+        navigator.Register(mainWindow.GetType().Assembly);
+		navigator.Navigate(args.Args.Length > 0 ? args.Args[0] : "home");
 
     }
 
