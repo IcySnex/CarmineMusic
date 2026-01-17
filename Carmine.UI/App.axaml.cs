@@ -17,9 +17,6 @@ namespace Carmine.UI;
 
 public class App : Application
 {
-    public static IServiceProvider Provider { get; private set; } = default!;
-
-
     public override void Initialize()
     {
         AvaloniaXamlLoader.Load(this);
@@ -66,7 +63,6 @@ public class App : Application
                 services.AddSingleton<SettingsViewModel>();
             })
             .Build();
-        Provider = host.Services;
 
         host.Services.GetRequiredService<LifetimeHandler>();
     }
