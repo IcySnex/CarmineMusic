@@ -1,0 +1,76 @@
+<ui:Window
+    x:Class="Carmine.UI.Views.MainWindow"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:conv="using:Carmine.UI.Converters"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:ui="clr-namespace:ShadUI;assembly=ShadUI"
+    xmlns:vm="using:Carmine.UI.ViewModels"
+    Title="Carmine"
+    Width="1100"
+    Height="600"
+    MinWidth="800"
+    MinHeight="450"
+    d:DesignHeight="450"
+    d:DesignWidth="800"
+    x:DataType="vm:MainWindowViewModel"
+    mc:Ignorable="d">
+
+    <Grid ColumnDefinitions="Auto, *">
+        <ui:Sidebar
+            Width="200"
+            MinWidth="60"
+            Padding="{Binding #SidebarToggleButton.IsChecked, Converter={x:Static conv:BooleanConverters.SidebarPadding}}"
+            BorderBrush="{DynamicResource BorderColor30}"
+            BorderThickness="0,0,1,0"
+            CurrentRoute="{Binding Navigator.CurrentRoute}"
+            Expanded="{Binding #SidebarToggleButton.IsChecked}">
+            <ui:Sidebar.Header>
+                <ToggleButton
+                    Name="SidebarToggleButton"
+                    Width="32"
+                    Height="32"
+                    Padding="8"
+                    HorizontalAlignment="{Binding #SidebarToggleButton.IsChecked, Converter={x:Static conv:BooleanConverters.SidebarToggleButtonHorizontalAlignment}}"
+                    Theme="{DynamicResource SideTogglerTheme}">
+                    <Viewbox>
+                        <TextBlock Classes="LucideIcon" Text="&#xe12e;" />
+                    </Viewbox>
+                </ToggleButton>
+            </ui:Sidebar.Header>
+
+            <StackPanel Spacing="4">
+                <ui:SidebarItemLabel AsSeparator="True" Text="Carmine" />
+
+                <ui:SidebarItem
+                    Command="{Binding NavigateCommand}"
+                    CommandParameter="home"
+                    Content="Home"
+                    Route="home"
+                    ToolTip.Tip="{Binding #SidebarToggleButton.IsChecked, Converter={x:Static conv:BooleanConverters.NullString}, ConverterParameter='Home'}">
+                    <ui:SidebarItem.Icon>
+                        <Viewbox>
+                            <TextBlock Classes="LucideIcon" Text="&#xe0f9;" />
+                        </Viewbox>
+                    </ui:SidebarItem.Icon>
+                </ui:SidebarItem>
+
+                <ui:SidebarItem
+                    Command="{Binding NavigateCommand}"
+                    CommandParameter="settings"
+                    Content="Settings"
+                    Route="settings"
+                    ToolTip.Tip="{Binding #SidebarToggleButton.IsChecked, Converter={x:Static conv:BooleanConverters.NullString}, ConverterParameter='Settings'}">
+                    <ui:SidebarItem.Icon>
+                        <Viewbox>
+                            <TextBlock Classes="LucideIcon" Text="&#xe158;" />
+                        </Viewbox>
+                    </ui:SidebarItem.Icon>
+                </ui:SidebarItem>
+            </StackPanel>
+        </ui:Sidebar>
+
+        <TransitioningContentControl Grid.Column="1" Content="{Binding Navigator.CurrentView}" />
+    </Grid>
+</ui:Window>

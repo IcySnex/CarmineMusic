@@ -2,16 +2,24 @@ using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Data.Core.Plugins;
 using Avalonia.Markup.Xaml;
+using Carmine.Core.Navigation;
 using Carmine.Core.Services;
+using Carmine.Core.Utilities;
+using Carmine.UI.ViewModels;
+using Carmine.UI.Views;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Serilog;
+using System;
 
 namespace Carmine.UI;
 
 public class App : Application
 {
+	public static IServiceProvider Provider { get; private set; } = default!;
+
+
 	public override void Initialize()
 	{
 		AvaloniaXamlLoader.Load(this);
@@ -27,18 +35,34 @@ public class App : Application
 		IHost host = Host.CreateDefaultBuilder()
 			.UseSerilog((context, configuration) =>
 			{
-				configuration.WriteTo.Console();
-				configuration.WriteTo.File("logs/log-.txt", rollingInterval: RollingInterval.Day, retainedFileCountLimit: 10);
+				configuration.Enrich.With<SourceContextEnricher>();
+
+                configuration.WriteTo.Console();
+                configuration.WriteTo.Debug();
+				configuration.WriteTo.File("Logs/Log-.txt", rollingInterval: RollingInterval.Day, retainedFileCountLimit: 10);
 			})
 			.ConfigureServices((context, services) =>
-			{
-				services.AddSingleton<LifetimeHandler>(provider => new(
+            {
+                // Services
+                services.AddSingleton<LifetimeHandler>(provider => new(
 					logger: provider.GetRequiredService<ILogger<LifetimeHandler>>(),
 					lifetime: desktop,
-					mainWindow: new MainWindow()));
+					mainWindow: new MainWindow() { DataContext = provider.GetRequiredService<MainWindowViewModel>() },
+                    navigator: provider.GetRequiredService<Navigator>()));
+
+				services.AddSingleton<Navigator>(provider => new(
+					provider: provider,
+					logger: provider.GetRequiredService<ILogger<Navigator>>()));
+
+                // ViewModels
+                services.AddSingleton<MainWindowViewModel>();
+
+				services.AddSingleton<HomeViewModel>();
+				services.AddSingleton<SettingsViewModel>();
 			})
 			.Build();
-		
-		host.Services.GetRequiredService<LifetimeHandler>();
+		Provider = host.Services;
+
+        host.Services.GetRequiredService<LifetimeHandler>();
 	}
 }

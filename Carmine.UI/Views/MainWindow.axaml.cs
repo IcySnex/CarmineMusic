@@ -1,11 +1,11 @@
 using ShadUI;
 
-namespace Carmine.UI;
+namespace Carmine.UI.Views;
 
 public partial class MainWindow : Window
 {
 	public MainWindow()
 	{
 		InitializeComponent();
-	}
+    }
 }
