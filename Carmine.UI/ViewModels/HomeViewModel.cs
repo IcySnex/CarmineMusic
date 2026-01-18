@@ -6,7 +6,8 @@ using CommunityToolkit.Mvvm.Input;
 namespace Carmine.UI.ViewModels;
 
 [Navigable<HomeView>("home")]
-public partial class HomeViewModel : ObservableObject
+public partial class HomeViewModel(
+    Navigator navigator) : ObservableObject
 {
     [ObservableProperty]
     string text = "Home!!!";
@@ -14,6 +15,6 @@ public partial class HomeViewModel : ObservableObject
     [RelayCommand]
     public void Test()
     {
-        Text = "New Home!!!";
+        navigator.Navigate<SettingsViewModel>();
     }
 }

@@ -1,5 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
+using Carmine.Core.Navigation;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -40,9 +41,12 @@ public class LifetimeHandler
     {
         logger.LogInformation("Starting application...");
 
+        // UI
         lifetime.MainWindow = mainWindow;
 
+        // Navigation
         navigator.Register(mainWindow.GetType().Assembly);
+
         if (args.Args.Length < 1 || !navigator.Navigate(args.Args[0]))
             navigator.Navigate("home");
     }

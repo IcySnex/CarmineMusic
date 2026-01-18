@@ -1,5 +1,5 @@
 ﻿using Avalonia.Controls;
-using Carmine.Core.Navigation;
+using Carmine.Core.Services;
 using Carmine.Core.Utilities;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.Extensions.DependencyInjection;
@@ -7,13 +7,14 @@ using Microsoft.Extensions.Logging;
 using ShadUI;
 using System.Reflection;
 
-namespace Carmine.Core.Services;
+namespace Carmine.Core.Navigation;
 
 public partial class Navigator(
     ILogger<Navigator> logger,
     ToastManager toastManager) : ObservableObject
 {
-    class Page(
+    sealed class Page(
+        string route,
         Type viewModelType,
         Type viewType,
         Control? view,
@@ -22,6 +23,8 @@ public partial class Navigator(
         bool onNavigatedToAcceptsParameters,
         MethodInfo? onNavigatedFrom)
     {
+        public string Route { get; } = route;
+
         public Type ViewModelType { get; } = viewModelType;
         public Type ViewType { get; } = viewType;
 
@@ -36,12 +39,39 @@ public partial class Navigator(
 
 
     readonly Dictionary<string, Page> routes = [];
+    readonly Dictionary<Type, Page> viewModelTypes = [];
 
     public string? CurrentRoute { get; private set; }
     public object? CurrentViewModel { get; private set; }
     public Control? CurrentView { get; private set; }
 
     MethodInfo? currentOnNavigatedFrom = null;
+
+
+    Control GetOrCreateView(
+        string route)
+    {
+        if (!routes.TryGetValue(route, out Page? page))
+            logger.LogErrorAndThrow(new InvalidOperationException($"No page found for route '{route}'."), "Failed to get view.");
+
+        if (!page.CacheView)
+            return CreateView(page.ViewType);
+
+        if (page.View is not null)
+            return page.View;
+
+        page.View = CreateView(page.ViewType);
+        return page.View;
+    }
+
+    Control CreateView(
+        Type type)
+    {
+        logger.LogInformation("Creating view '{viewType}'...", type.Name);
+
+        Control view = (Control)Activator.CreateInstance(type)!;
+        return view;
+    }
 
 
     (string Route, Dictionary<string, string> Parameters) ParseUri(
@@ -93,30 +123,35 @@ public partial class Navigator(
         return (route, parameters);
     }
 
-
-    Control GetView(
-        string route)
+    bool Navigate(
+        Page page,
+        Dictionary<string, string>? parameters)
     {
-        if (!routes.TryGetValue(route, out Page? page))
-            logger.LogErrorAndThrow(new InvalidOperationException($"No page found for route '{route}'."), "Failed to get view.");
+        object viewModel = LifetimeHandler.Provider.GetRequiredService(page.ViewModelType);
 
-        if (!page.CacheView)
-            return CreateView(page.ViewType);
+        Control view = GetOrCreateView(page.Route);
+        view.DataContext = viewModel;
 
-        if (page.View is not null)
-            return page.View;
 
-        page.View = CreateView(page.ViewType);
-        return page.View;
-    }
+        if (CurrentViewModel is not null && currentOnNavigatedFrom is not null)
+            currentOnNavigatedFrom.Invoke(CurrentViewModel, null);
 
-    Control CreateView(
-        Type type)
-    {
-        logger.LogInformation("Creating view '{viewType}'...", type.Name);
+        OnPropertyChanging(nameof(CurrentRoute));
+        CurrentRoute = page.Route;
+        OnPropertyChanged(nameof(CurrentRoute));
 
-        Control view = (Control)Activator.CreateInstance(type)!;
-        return view;
+        OnPropertyChanging(nameof(CurrentViewModel));
+        CurrentViewModel = viewModel;
+        OnPropertyChanged(nameof(CurrentViewModel));
+
+        OnPropertyChanging(nameof(CurrentView));
+        CurrentView = view;
+        OnPropertyChanged(nameof(CurrentView));
+
+        page.OnNavigatedTo?.Invoke(viewModel, page.OnNavigatedToAcceptsParameters ? [parameters ?? []] : null);
+        currentOnNavigatedFrom = page.OnNavigatedFrom;
+
+        return true;
     }
 
 
@@ -125,24 +160,23 @@ public partial class Navigator(
     {
         logger.LogInformation("Scanning assembly '{assembly}' for navigable pages...", assembly.FullName);
 
-        foreach (Type type in assembly.GetTypes())
+        foreach (Type viewModelType in assembly.GetTypes())
         {
-            if (type.IsInterface || type.IsAbstract)
+            if (viewModelType.IsInterface || viewModelType.IsAbstract)
                 continue;
 
-            CustomAttributeData? attribute = type.CustomAttributes.FirstOrDefault(attribute => attribute.AttributeType.IsGenericType && attribute.AttributeType.GetGenericTypeDefinition() == typeof(NavigableAttribute<>));
+            CustomAttributeData? attribute = viewModelType.CustomAttributes.FirstOrDefault(attribute => attribute.AttributeType.IsGenericType && attribute.AttributeType.GetGenericTypeDefinition() == typeof(NavigableAttribute<>));
             if (attribute is null)
                 continue;
 
-            string name = (string)attribute.ConstructorArguments[0].Value!;
-
+            string route = (string)attribute.ConstructorArguments[0].Value!;
             Type viewType = attribute.AttributeType.GenericTypeArguments[0];
             bool cacheView = attribute.ConstructorArguments.Count <= 1 || (bool)attribute.ConstructorArguments[1].Value!;
             MethodInfo? onNavigatedTo = null;
             bool onNavigatedToAcceptsParameters = false;
             MethodInfo? onNavigatedFrom = null;
 
-            foreach (MethodInfo method in type.GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic))
+            foreach (MethodInfo method in viewModelType.GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic))
             {
                 if (onNavigatedTo is null && method.IsDefined(typeof(OnNavigatedToAttribute)))
                 {
@@ -168,7 +202,9 @@ public partial class Navigator(
                     break;
             }
 
-            routes[name] = new Page(type, viewType, null, cacheView, onNavigatedTo, onNavigatedToAcceptsParameters, onNavigatedFrom);
+            Page page = new Page(route, viewModelType, viewType, null, cacheView, onNavigatedTo, onNavigatedToAcceptsParameters, onNavigatedFrom);
+            if (!routes.TryAdd(route, page) || !viewModelTypes.TryAdd(viewModelType, page))
+                logger.LogErrorAndThrow(new InvalidOperationException("This page is already registered."), "Failed to register assembly");
         }
     }
 
@@ -182,7 +218,7 @@ public partial class Navigator(
             return false;
         }
 
-        logger.LogInformation("Navigation '{uri}' requested...", uri);
+        logger.LogInformation("Navigation '{uri}' (URI) requested...", uri);
 
         (string? route, Dictionary<string, string> parameters) = ParseUri(uri);
         if (route == CurrentRoute)
@@ -200,30 +236,25 @@ public partial class Navigator(
             return false;
         }
 
-        // Get ViewModel and View
-        object viewModel = LifetimeHandler.Provider.GetRequiredService(page.ViewModelType);
+        return Navigate(page, parameters);
+    }
 
-        Control view = GetView(route);
-        view.DataContext = viewModel;
+    public bool Navigate<TViewModel>(
+        Dictionary<string, string>? parameters = null) where TViewModel : class
+    {
+        Type viewModelType = typeof(TViewModel);
 
-        // Navigate
-        currentOnNavigatedFrom?.Invoke(CurrentViewModel!, null);
+        logger.LogInformation("Navigation '{viewModelType}' (ViewModel) requested...", viewModelType.Name);
 
-        OnPropertyChanging(nameof(CurrentRoute));
-        CurrentRoute = route;
-        OnPropertyChanged(nameof(CurrentRoute));
+        if (!viewModelTypes.TryGetValue(viewModelType, out Page? page))
+        {
+            toastManager.CreateToast("Something went wrong!")
+                .WithContent($"It looks like the page '{viewModelType.Name}' doesn't exist.")
+                .DismissOnClick()
+                .ShowWarning();
+            return false;
+        }
 
-        OnPropertyChanging(nameof(CurrentViewModel));
-        CurrentViewModel = viewModel;
-        OnPropertyChanged(nameof(CurrentViewModel));
-
-        OnPropertyChanging(nameof(CurrentView));
-        CurrentView = view;
-        OnPropertyChanged(nameof(CurrentView));
-
-        page.OnNavigatedTo?.Invoke(viewModel, page.OnNavigatedToAcceptsParameters ? [parameters] : null);
-        currentOnNavigatedFrom = page.OnNavigatedFrom;
-
-        return true;
+        return Navigate(page, parameters);
     }
 }

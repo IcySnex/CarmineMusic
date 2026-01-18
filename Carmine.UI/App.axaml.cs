@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Data.Core.Plugins;
 using Avalonia.Markup.Xaml;
+using Carmine.Core.Navigation;
 using Carmine.Core.Services;
 using Carmine.Core.Utilities;
 using Carmine.UI.ViewModels;
@@ -10,7 +11,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Serilog;
 using ShadUI;
-using System;
 using System.IO;
 
 namespace Carmine.UI;
