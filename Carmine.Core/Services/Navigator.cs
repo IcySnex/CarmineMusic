@@ -1,5 +1,5 @@
 ﻿using Avalonia.Controls;
-using Carmine.Core.Services;
+using Carmine.Core.Models.Navigation;
 using Carmine.Core.Utilities;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.Extensions.DependencyInjection;
@@ -7,7 +7,7 @@ using Microsoft.Extensions.Logging;
 using ShadUI;
 using System.Reflection;
 
-namespace Carmine.Core.Navigation;
+namespace Carmine.Core.Services;
 
 public partial class Navigator(
     ILogger<Navigator> logger,

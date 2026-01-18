@@ -1,4 +1,5 @@
-﻿using Carmine.Core.Navigation;
+﻿using Carmine.Core.Models.Navigation;
+using Carmine.Core.Services;
 using Carmine.UI.Views;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;

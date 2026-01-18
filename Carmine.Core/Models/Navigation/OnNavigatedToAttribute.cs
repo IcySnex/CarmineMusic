@@ -1,4 +1,4 @@
-﻿namespace Carmine.Core.Navigation;
+﻿namespace Carmine.Core.Models.Navigation;
 
 [AttributeUsage(AttributeTargets.Method)]
 public class OnNavigatedToAttribute : Attribute

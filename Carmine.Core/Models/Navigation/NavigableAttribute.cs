@@ -1,6 +1,6 @@
 ﻿using Avalonia.Controls;
 
-namespace Carmine.Core.Navigation;
+namespace Carmine.Core.Models.Navigation;
 
 [AttributeUsage(AttributeTargets.Class)]
 public class NavigableAttribute<TView>(

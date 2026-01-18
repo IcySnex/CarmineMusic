@@ -1,4 +1,4 @@
-﻿using Carmine.Core.Navigation;
+﻿using Carmine.Core.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ShadUI;
