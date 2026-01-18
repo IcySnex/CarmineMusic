@@ -1,5 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
+using Carmine.Core.Services.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -10,11 +11,10 @@ public class LifetimeHandler
     public static IServiceProvider Provider { get; private set; } = default!;
 
 
+    readonly ILogger<LifetimeHandler> logger;
+
     readonly IClassicDesktopStyleApplicationLifetime lifetime;
     readonly Window mainWindow;
-
-    readonly ILogger<LifetimeHandler> logger;
-    readonly Navigator navigator;
 
     public LifetimeHandler(
         IServiceProvider provider,
@@ -23,37 +23,46 @@ public class LifetimeHandler
     {
         Provider = provider;
 
+        logger = Provider.GetRequiredService<ILogger<LifetimeHandler>>();
+
         this.lifetime = lifetime;
         this.mainWindow = mainWindow;
 
-        logger = provider.GetRequiredService<ILogger<LifetimeHandler>>();
-        navigator = provider.GetRequiredService<Navigator>();
-
         lifetime.Startup += OnStartup;
         lifetime.ShutdownRequested += OnShutdownRequested;
+
+        lifetime.MainWindow = mainWindow;
     }
 
 
-    void OnStartup(
+    IConfigProvider configProvider = default!;
+    Navigator navigator = default!;
+
+
+    async void OnStartup(
         object? sender,
         ControlledApplicationLifetimeStartupEventArgs args)
     {
-        logger.LogInformation("Starting application...");
+        logger.LogInformation("Application started...");
 
-        // UI
-        lifetime.MainWindow = mainWindow;
+        // Config
+        configProvider = Provider.GetRequiredService<IConfigProvider>();
+        await configProvider.LoadAsync();
 
         // Navigation
+        navigator = Provider.GetRequiredService<Navigator>();
         navigator.Register(mainWindow.GetType().Assembly);
 
         if (args.Args.Length < 1 || !navigator.Navigate(args.Args[0]))
             navigator.Navigate("home");
     }
 
-    void OnShutdownRequested(
+    async void OnShutdownRequested(
         object? sender,
         ShutdownRequestedEventArgs args)
     {
-        logger.LogInformation("Stopping application...");
+        logger.LogInformation("Application shutdown requested...");
+
+        await configProvider.SaveAsync();
     }
 }
