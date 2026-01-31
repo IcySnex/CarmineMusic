@@ -7,7 +7,6 @@ using Carmine.Core.Services.Abstractions;
 using Carmine.Core.Utilities;
 using Carmine.UI.ViewModels;
 using Carmine.UI.Views;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Serilog;
