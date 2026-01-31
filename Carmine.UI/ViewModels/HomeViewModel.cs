@@ -11,7 +11,7 @@ namespace Carmine.UI.ViewModels;
 public partial class HomeViewModel(
     IConfigProvider configProvider) : ObservableObject
 {
-    readonly Config config = configProvider.Get<Config>(nameof(Config));
+    readonly Config config = configProvider.Get<Config>();
 
 
     [ObservableProperty]

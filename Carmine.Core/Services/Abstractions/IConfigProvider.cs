@@ -7,6 +7,5 @@ public interface IConfigProvider
     Task SaveAsync();
 
 
-    T Get<T>(
-        string section) where T : class, new();
+    T Get<T>() where T : class, new();
 }

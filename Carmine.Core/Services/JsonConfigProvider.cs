@@ -2,6 +2,7 @@
 using Carmine.Core.Services.Abstractions;
 using Carmine.Core.Utilities;
 using Microsoft.Extensions.Logging;
+using System.Xml.Linq;
 using static System.Collections.Specialized.BitVector32;
 
 namespace Carmine.Core.Services;
@@ -13,26 +14,27 @@ public class JsonConfigProvider(
     readonly Dictionary<string, object> cache = [];
 
 
-    async Task LoadAsync<T>(
-        string section) where T : class, new()
+    async Task LoadAsync<T>() where T : class, new()
     {
-        if (cache.ContainsKey(section))
+        string name = typeof(T).Name;
+
+        if (cache.ContainsKey(name))
             return;
 
         try
         {
-            logger.LogInformation("Loading config section '{section}'...", section);
+            logger.LogInformation("Loading config '{name}'...", name);
 
-            string path = Path.Combine(LocalFileSystem.ConfigDirectory, $"{section}.json");
+            string path = Path.Combine(LocalFileSystem.ConfigDirectory, $"{name}.json");
             string json = await fileSystem.ReadAsync(path);
             T model = Json.Deserialize<T>(json);
 
-            cache[section] = model;
+            cache[name] = model;
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "Failed to load config section '{section}'. Creating new...", section);
-            cache[section] = new T();
+            logger.LogWarning(ex, "Failed to load config '{name}'. Creating new...", name);
+            cache[name] = new T();
         }
     }
 
@@ -42,14 +44,14 @@ public class JsonConfigProvider(
         logger.LogInformation("Initializing JSON configs...");
 
         return Task.WhenAll(
-            LoadAsync<Config>(nameof(Config)));
+            LoadAsync<Config>());
     }
 
     public async Task SaveAsync()
     {
         foreach (KeyValuePair<string, object> kvp in cache)
         {
-            logger.LogInformation("Saving config section '{section}'...", kvp.Key);
+            logger.LogInformation("Saving config '{name}'...", kvp.Key);
 
             string path = Path.Combine(LocalFileSystem.ConfigDirectory, $"{kvp.Key}.json");
             string json = Json.Serialize(kvp.Value);
@@ -58,12 +60,13 @@ public class JsonConfigProvider(
     }
 
 
-    public T Get<T>(
-        string section) where T : class, new()
+    public T Get<T>() where T : class, new()
     {
-        if (cache.TryGetValue(section, out object? model))
+        string name = typeof(T).Name;
+
+        if (cache.TryGetValue(name, out object? model))
             return (T)model;
 
-        throw new InvalidOperationException($"Config section '{section}' not loaded. Did you forget to call InitializeAsync()?");
+        throw new InvalidOperationException($"Config '{name}' not loaded.");
     }
 }
