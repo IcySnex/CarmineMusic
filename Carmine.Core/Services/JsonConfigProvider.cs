@@ -2,8 +2,6 @@
 using Carmine.Core.Services.Abstractions;
 using Carmine.Core.Utilities;
 using Microsoft.Extensions.Logging;
-using System.Xml.Linq;
-using static System.Collections.Specialized.BitVector32;
 
 namespace Carmine.Core.Services;
 
